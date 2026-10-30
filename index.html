@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#244b55">
+  <meta name="description" content="伦敦理工科英硕生活策略游戏十月四周可玩 Demo">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <title>一年英硕 · 伦敦十月 Demo</title>
+</head>
+<body>
+  <main class="game-shell" id="game">
+    <section class="phone" aria-label="伦敦英硕十月四周游戏">
+      <header class="topbar">
+        <button class="avatar" id="avatarButton" type="button" aria-label="查看完整属性与存档设置"><img id="avatarImage" alt="当前人物头像"><i></i></button>
+        <div class="week-title"><strong id="weekNumber">第 1 周</strong><span id="weekMeta">10月 · London</span></div>
+        <button class="collection-button" id="collectionButton" type="button"><img class="mini-sticker" id="collectionPreview" alt=""><b id="stickerCount">0/21</b></button>
+      </header>
+
+      <section class="stats" aria-label="人物状态">
+        <button type="button" data-open-attributes><span>资金</span><strong id="money">£600</strong><i id="moneyDelta"></i></button>
+        <button type="button" data-open-attributes><span>生命</span><strong id="health">80</strong><i id="healthDelta"></i></button>
+        <button type="button" data-open-attributes><span>精神</span><strong id="mental">70</strong><i id="mentalDelta"></i></button>
+        <button type="button" data-open-attributes><span>学业</span><strong id="studyProgress">0/120</strong><i id="studyDelta"></i></button>
+      </section>
+
+      <section class="calendar-card">
+        <button class="calendar-open" id="calendarButton" type="button">
+          <div class="calendar-top"><span id="calendarWeek">W1 / 36</span><strong id="calendarDeadline">10月无硬性 Deadline</strong><em>›</em></div>
+          <div class="week-track"><i></i><b></b></div>
+        </button>
+        <div class="task-chips">
+          <button class="warning" id="mealChip" type="button">饮食 · 未安排</button>
+          <span id="trustChip">教授信任 · 5/10</span>
+          <span id="promiseChip">暂无承诺</span>
+        </div>
+      </section>
+
+      <section class="action-section">
+        <div class="section-heading"><div><span>本周安排</span><h2>3 个固定行动</h2></div><button id="familyButton" type="button">☎ 联系家里 <small>免费</small></button></div>
+        <div class="action-grid" id="actionGrid">
+          <button class="action-slot" data-slot="0" type="button"><b>＋</b><span>行动 1</span><i></i></button>
+          <button class="action-slot" data-slot="1" type="button"><b>＋</b><span>行动 2</span><i></i></button>
+          <button class="action-slot" data-slot="2" type="button"><b>＋</b><span>行动 3</span><i></i></button>
+        </div>
+      </section>
+
+      <section class="opportunity-section">
+        <div class="section-heading"><div><span>可以接 0—4 张</span><h2>本周机会</h2></div><b id="acceptedCount">已接 0/4</b></div>
+        <article class="card-detail" id="cardDetail">
+          <div class="detail-copy"><span id="detailKind">私人计划</span><h3 id="detailTitle">第一次探索学校图书馆</h3><p id="detailRequirement">需要 1 次学习行动</p><p class="detail-check" id="detailCheck">判定 · 满足行动后自动成功</p><div class="detail-outcomes"><small class="outcome-success"><b>履约</b><span id="detailReward">完成 · 学业 +2</span></small><small class="outcome-risk"><b>爽约</b><span id="detailPenalty">未完成 · 无惩罚</span></small></div></div>
+          <button id="acceptCardButton" type="button">加入计划</button>
+        </article>
+
+        <div class="card-hand" id="cardHand" aria-label="四张机会卡">
+          <button class="opportunity-card commit-self selected" style="--i:0;--r:-7deg" data-card="0" type="button" aria-label="私人计划：图书馆，理工学业卡"><span class="card-icon" aria-hidden="true">📚</span><small>私人计划</small><strong>图书馆</strong><span class="card-category">理工</span><i>✓</i></button>
+          <button class="opportunity-card commit-public" style="--i:1;--r:-2deg" data-card="1" type="button" aria-label="公开承诺：教授邀约，理工学业卡"><span class="card-icon" aria-hidden="true">🧑‍🏫</span><small>公开承诺</small><strong>教授邀约</strong><span class="card-category">理工</span><i>✓</i></button>
+          <button class="opportunity-card commit-public" style="--i:2;--r:3deg" data-card="2" type="button" aria-label="公开承诺：同学约饭，社交卡"><span class="card-icon" aria-hidden="true">🍜</span><small>公开承诺</small><strong>同学约饭</strong><span class="card-category">社交</span><i>✓</i></button>
+          <button class="opportunity-card commit-normal" style="--i:3;--r:7deg" data-card="3" type="button" aria-label="固定活动：Welcome，社交卡"><span class="card-icon" aria-hidden="true">🎉</span><small>固定活动</small><strong>Welcome</strong><span class="card-category">社交</span><i>✓</i></button>
+        </div>
+        <p class="gesture-hint">点按露出的卡头切换 · 点击按钮加入计划</p>
+        <button class="settle-button" id="settleButton" type="button"><span>开始周结算</span><b>→</b></button>
+      </section>
+
+      <div class="feedback-banner" id="feedbackBanner" role="status" aria-live="polite"><i>✓</i><div><strong></strong><span></span></div></div>
+      <div class="confetti" id="confetti" aria-hidden="true"></div>
+    </section>
+  </main>
+
+  <div class="home-overlay visible" id="homeOverlay" aria-labelledby="homeTitle">
+    <section class="home-card">
+      <span class="eyebrow">10月 · LONDON · 理工科 DEMO</span>
+      <div class="cover-stickers" aria-hidden="true">
+        <img class="cover-bigben" src="assets/stickers/big-ben.png" alt="">
+        <img class="cover-bus" src="assets/stickers/red-london-bus.png" alt="">
+        <img class="cover-central" src="assets/stickers/central-line.png" alt="">
+      </div>
+      <h1 id="homeTitle">一年英硕</h1>
+      <p>在伦敦，用 36 周把毕业、生活和这一年的英国情都安排明白。</p>
+      <div class="home-progress" id="homeProgress">
+        <div><span>最近进度</span><strong id="homeProgressTitle">尚未开始</strong></div>
+        <small id="homeProgressMeta">先随机一位理工科留学生</small>
+      </div>
+      <div class="home-actions">
+        <button class="primary-button" id="continueGameButton" type="button">继续游戏</button>
+        <button class="secondary-button" id="newGameButton" type="button">新游戏</button>
+        <button class="secondary-button" id="homeLoadButton" type="button">读档</button>
+        <button class="secondary-button" id="homeCollectionButton" type="button">贴纸册</button>
+      </div>
+      <small class="home-save-hint" id="homeSaveHint">暂无已完成周存档</small>
+    </section>
+  </div>
+
+  <div class="overlay onboarding" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+    <section class="intro-card">
+      <span class="eyebrow">理工科 DEMO · 10月 · LONDON</span>
+      <h1 id="onboardingTitle">欢迎来到你的一年英硕</h1>
+      <p>本次试玩先聚焦理工科英硕。毕业是硬目标；至于这一年会变成什么样，由你每周的三个行动决定。</p>
+      <article class="persona-card" id="personaCard">
+        <div class="persona-head"><span id="personaMajor">理工类</span><b id="personaTrait">失败重试</b></div>
+        <div class="persona-values"><div><span>学术能力</span><strong id="personaAcademic">55</strong></div><div><span>社交值</span><strong id="personaCharm">32</strong></div><div><span>幸运</span><strong id="personaLuck">2</strong></div></div>
+        <div class="persona-family"><span>家庭支持</span><strong id="personaFamily">基础档</strong><small id="personaSupport">每 4 周 +£1,400 · 房租后可用约 £600</small></div>
+        <small id="personaNote">毕业要求 120 · 每四周首次学业失败可重试</small>
+      </article>
+      <button class="secondary-button" id="rerollButton" type="button">↻ 换一个随机人设</button>
+      <button class="primary-button" id="startButton" type="button">就用这个人设开始</button>
+    </section>
+  </div>
+
+  <div class="overlay" id="sheetOverlay">
+    <section class="bottom-sheet" id="actionSheet" role="dialog" aria-modal="true" aria-labelledby="actionTitle">
+      <header><div><span>固定行动</span><h2 id="actionTitle">安排行动 1</h2></div><button data-close-sheet type="button">关闭</button></header>
+      <div class="action-options">
+        <button data-action="study" type="button"><i>▤</i><div><b>学习</b><span>学业固定 +2，按学术能力概率再 +1</span></div></button>
+        <button data-action="social" type="button"><i>◉</i><div><b>社交活动</b><span>精神 +2，社交值 +1</span></div></button>
+        <button data-action="rest" type="button"><i>☾</i><div><b>休息</b><span>生命 +4，精神 +4</span></div></button>
+        <button data-action="gym" type="button"><i>♥</i><div><b>健身</b><span>生命 +5，精神 +5</span></div></button>
+        <button data-action="shop" type="button"><i>▣</i><div><b>购物</b><span>占 1 点，现在选择本周预算</span></div></button>
+        <button data-action="ask" type="button"><i>£</i><div><b>向家里要钱</b><span>占 1 点；欠款时强制保底</span></div></button>
+        <button class="wide deadline-action" id="deadlineActionButton" data-action="deadline" type="button" hidden><i>!</i><div><b>完成期中必修作业</b><span>W4 开放 · 连占 2 个行动 · 学业 +6</span></div></button>
+        <div class="meal-label"><b>本周吃什么</b><span>只能选择一种 · 可随时更换</span></div>
+        <button class="meal-option" data-action="cook" type="button"><i>♨</i><div><b>自己做饭 · £30</b><span>占 1 点，生命 +2，精神 +2</span></div></button>
+        <button class="meal-option" data-action="dine" type="button"><i>♜</i><div><b>出去吃 · £120</b><span>占 1 点，精神 +2，社交值 +1</span></div></button>
+        <button class="wide meal-option" id="takeawayButton" data-action="takeaway" data-free="true" type="button"><i>⌁</i><div><b id="takeawayTitle">点外卖 · £60</b><span id="takeawayHint">不占行动点，只解决饮食</span></div></button>
+      </div>
+    </section>
+  </div>
+
+  <div class="overlay" id="socialOverlay">
+    <section class="message-card social-card" role="dialog" aria-modal="true" aria-labelledby="socialTitle">
+      <div class="message-icon">◉</div><span class="eyebrow">社交行动</span><h2 id="socialTitle">这次要邀请谁？</h2><p>不邀请也能获得基础收益。邀请成功会额外增加社交值和对应人物亲密度，同一人物可以重复邀请。</p>
+      <div class="social-options">
+        <button data-social-target="none" type="button"><b>自己去参加</b><span>固定：精神 +2 · 社交值 +1</span></button>
+        <button data-social-target="china" type="button"><b>邀请中国同学</b><span id="socialChanceChina">当前成功率</span></button>
+        <button data-social-target="foreign" type="button"><b>邀请外国同学</b><span id="socialChanceForeign">参加 Welcome 后解锁</span></button>
+      </div>
+      <button class="secondary-button" id="socialCancel" type="button">返回行动选择</button>
+    </section>
+  </div>
+
+  <div class="overlay" id="messageOverlay">
+    <section class="message-card" role="dialog" aria-modal="true" aria-labelledby="messageTitle">
+      <div class="message-icon" id="messageIcon">✓</div><span class="eyebrow" id="messageEyebrow">已安排</span><h2 id="messageTitle">行动已经加入本周</h2><p id="messageBody"></p><div class="delta-pills" id="messageDeltas"></div><div class="message-actions"><button class="secondary-button" id="messageCancel" type="button" hidden>取消</button><button class="primary-button" id="messageClose" type="button">知道了</button></div>
+    </section>
+  </div>
+
+  <div class="overlay" id="attributesOverlay">
+    <section class="bottom-sheet attributes-sheet" role="dialog" aria-modal="true" aria-labelledby="attributesTitle">
+      <header><div><span>完整属性</span><h2 id="attributesTitle">你的人设</h2></div><button data-close-attributes type="button">关闭</button></header>
+      <div class="attribute-hero"><div class="big-avatar"><img id="bigAvatarImage" alt="当前人物头像"></div><div><strong id="attributeMajor">理工类学生</strong><span id="attributeSupport">学生公寓 · 基础档每 4 周 +£1,400</span></div></div>
+      <div class="attribute-list" id="attributeList"></div>
+      <div class="npc-list"><h3>人物关系</h3><div><span>中国同学</span><b id="chinaRelation">6/10</b></div><div><span>外国同学</span><b id="intlRelation">未认识</b></div><div><span>教授信任</span><b id="professorTrust">5/10</b></div></div>
+      <button class="settings-entry" id="openSettingsButton" type="button"><span><b>存档与设置</b><small>存读档、动态效果与返回首页</small></span><i>›</i></button>
+    </section>
+  </div>
+
+  <div class="overlay" id="settingsOverlay">
+    <section class="bottom-sheet settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <header><div><span>二级页面</span><h2 id="settingsTitle">存档与设置</h2></div><button data-close-settings type="button">返回属性</button></header>
+      <div class="settings-panel">
+        <h3>当前手动槽</h3>
+        <div class="save-status"><span>最近完成周存档</span><b id="manualSaveStatus">暂无存档</b></div>
+        <div class="settings-buttons"><button id="manualSaveButton" type="button">完成本周后可存档</button><button id="manualLoadButton" type="button">读取存档</button></div>
+        <p class="checkpoint-note">只保存已经完整结算的周。当前周行动、卡牌和随机事件不会写入。</p>
+        <h3 class="settings-subtitle">存档扩展</h3>
+        <div class="future-setting"><span><b>自动存档</b><small>保存最近一次结束的 Week，并自动覆盖</small></span><em>后续开放</em></div>
+        <div class="future-setting"><span><b>多存档</b><small>自动槽与多个手动槽统一管理</small></span><em>后续开放</em></div>
+        <h3 class="settings-subtitle">显示</h3>
+        <label class="motion-setting"><span><b>减少动态效果</b><small>保留必要反馈，关闭彩纸与大幅位移</small></span><input id="reduceMotionToggle" type="checkbox"></label>
+        <h3 class="settings-subtitle">游戏</h3>
+        <button class="return-home-button" id="returnHomeButton" type="button">返回首页</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="overlay" id="shoppingOverlay">
+    <section class="message-card shopping-card" role="dialog" aria-modal="true" aria-labelledby="shoppingTitle">
+      <div class="message-icon">🛍</div><span class="eyebrow">安排购物行动</span><h2 id="shoppingTitle">这周打算花多少钱？</h2><p>现在选好预算，行动槽会直接显示档位。周结算只播放过程和结果，不再打断你做选择。</p>
+      <div class="shopping-options" id="shoppingOptions">
+        <button data-shop-tier="0" type="button"><b>暂时不买</b><span>£0 · 无变化</span></button>
+        <button data-shop-tier="30" type="button"><b>买点小东西</b><span>£30 · 精神 +2 · 社交 +1</span></button>
+        <button data-shop-tier="80" type="button"><b>认真逛一圈</b><span>£80 · 精神 +5 · 社交 +2</span></button>
+        <button data-shop-tier="200" type="button"><b>奖励自己</b><span>£200 · 精神 +8 · 社交 +4</span></button>
+      </div>
+      <button class="secondary-button" id="shoppingCancel" type="button">返回行动选择</button>
+    </section>
+  </div>
+
+  <div class="overlay" id="planSettlementOverlay">
+    <section class="message-card plan-settlement-card" role="dialog" aria-modal="true" aria-labelledby="planSettlementTitle">
+      <div class="plan-stamp" id="planSettlementStamp">判定</div><span class="eyebrow" id="planSettlementKind">私人计划</span><h2 id="planSettlementTitle">本周计划结算</h2><p id="planSettlementBody"></p>
+      <div class="delta-pills" id="planSettlementDeltas"></div>
+      <div class="plan-actions"><button class="secondary-button" id="planRetryButton" type="button" hidden>使用本月重判 · 1/1</button><button class="primary-button" id="planContinueButton" type="button">继续结算</button></div>
+    </section>
+  </div>
+
+  <div class="overlay" id="collectionOverlay">
+    <section class="bottom-sheet collection-sheet" role="dialog" aria-modal="true" aria-labelledby="collectionTitle">
+      <header><div><span>10 月特别收集</span><h2 id="collectionTitle">伦敦生活贴纸册</h2></div><button data-close-collection type="button">关闭</button></header>
+      <p>完成对应经历后，贴纸会自动飞进收藏册。未解锁图案只保留模糊轮廓；重复行动会分别累计次数，但已经收藏的贴纸不会重复发放。</p>
+      <div class="sticker-grid" id="stickerGrid"></div>
+    </section>
+  </div>
+
+  <div class="overlay" id="calendarOverlay">
+    <section class="bottom-sheet calendar-sheet" role="dialog" aria-modal="true" aria-labelledby="calendarTitle">
+      <header><div><span>10 月—6 月</span><h2 id="calendarTitle">36 周年历</h2></div><button data-close-calendar type="button">关闭</button></header>
+      <div class="timeline"><div class="now" id="calendarNow"><b>W1</b><span>入学与 Welcome Week</span></div><div><b>W6</b><span>Reading Week · 暂定</span></div><div><b>W7</b><span>第一次学业判定 · 目标 18</span></div><div><b>W10</b><span>秋季学期结束</span></div><div><b>W13</b><span>寒假结束</span></div><div><b>W19</b><span>Reading Week · 暂定</span></div><div><b>W29</b><span>论文期开始</span></div><div><b>W36</b><span>论文提交</span></div></div>
+    </section>
+  </div>
+
+  <div class="overlay" id="resultsOverlay">
+    <section class="results-card" role="dialog" aria-modal="true" aria-labelledby="resultsTitle">
+      <div class="week-stamp" id="resultsWeekStamp">WEEK 1</div><span class="eyebrow">周日 · 23:40</span><h2 id="resultsTitle">这周过得怎么样？</h2><div class="result-list" id="resultList"></div><div class="reward-box" id="rewardBox"><span>本周记忆</span><strong>第一周就把自己安排满了</strong></div><button class="primary-button" id="finishResults" type="button">收下结果</button>
+    </section>
+  </div>
+
+  <div class="overlay" id="stickerUnlockOverlay">
+    <section class="unlock-card" role="dialog" aria-modal="true" aria-labelledby="unlockTitle"><span class="eyebrow">NEW STICKERS!</span><div class="unlock-fan" id="unlockFan" aria-label="本周新贴纸"></div><h2 id="unlockTitle">本周新收藏</h2><p id="unlockText"></p><button class="primary-button" id="unlockClose" type="button">全部贴进收藏册</button></section>
+  </div>
+
+  <div class="overlay" id="monthRewardOverlay">
+    <section class="results-card month-reward-card" role="dialog" aria-modal="true" aria-labelledby="monthRewardTitle">
+      <span class="eyebrow">OCTOBER COMPLETE</span><div class="month-medal">10月</div><h2 id="monthRewardTitle">你在伦敦活过了第一个月</h2><p id="monthRewardCopy">课程、生活和人际关系都开始运转。</p>
+      <div class="title-stack"><strong id="mainTitle">节奏管理者</strong><div><span id="sideTitleOne">按时上线</span><span id="sideTitleTwo">伦敦初体验</span></div></div>
+      <div class="month-stats" id="monthStats"></div>
+      <button class="primary-button" id="showPreviewButton" type="button">看看接下来会发生什么</button>
+    </section>
+  </div>
+
+  <div class="overlay" id="demoPreviewOverlay">
+    <section class="results-card preview-card" role="dialog" aria-modal="true" aria-labelledby="demoPreviewTitle">
+      <span class="eyebrow">36-WEEK FREE VERSION</span><h2 id="demoPreviewTitle">十月只是开始</h2><p>第一次学业判定、圣诞假期、旅行、关系事件与最终论文，都会继续改变这一年。</p>
+      <div class="preview-path"><div><b>W7</b><span>第一次学业判定</span></div><div><b>寒假</b><span>留英或回国</span></div><div><b>春季</b><span>旅行与关系事件</span></div><div><b>W36</b><span>毕业或延毕</span></div></div>
+      <button class="primary-button" id="finishDemoButton" type="button">完成十月 Demo</button>
+    </section>
+  </div>
+
+  <script src="assets/asset-catalog.js"></script>
+  <script src="assets/card-catalog.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
