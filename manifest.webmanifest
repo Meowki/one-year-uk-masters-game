@@ -1,0 +1,9 @@
+{
+  "name": "一年英硕 · 伦敦十月 Demo",
+  "short_name": "一年英硕",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1ecdf",
+  "theme_color": "#244b55",
+  "icons": []
+}
