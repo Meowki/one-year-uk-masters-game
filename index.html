@@ -7,11 +7,11 @@
   <meta name="description" content="伦敦理工科英硕生活策略游戏十月四周可玩 Demo">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
-  <title>一年英硕 · 伦敦十月 Demo</title>
+  <title>英硕模拟器 · 伦敦十月 Demo</title>
 </head>
 <body>
   <main class="game-shell" id="game">
-    <section class="phone" aria-label="伦敦英硕十月四周游戏">
+    <section class="phone" aria-label="英硕模拟器伦敦十月四周游戏">
       <header class="topbar">
         <button class="avatar" id="avatarButton" type="button" aria-label="查看完整属性与存档设置"><img id="avatarImage" alt="当前人物头像"><i></i></button>
         <div class="week-title"><strong id="weekNumber">第 1 周</strong><span id="weekMeta">10月 · London</span></div>
@@ -64,9 +64,10 @@
       </section>
 
       <div class="feedback-banner" id="feedbackBanner" role="status" aria-live="polite"><i>✓</i><div><strong></strong><span></span></div></div>
-      <div class="confetti" id="confetti" aria-hidden="true"></div>
     </section>
   </main>
+
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
 
   <div class="home-overlay visible" id="homeOverlay" aria-labelledby="homeTitle">
     <section class="home-card">
@@ -76,7 +77,7 @@
         <img class="cover-bus" src="assets/stickers/red-london-bus.png" alt="">
         <img class="cover-central" src="assets/stickers/central-line.png" alt="">
       </div>
-      <h1 id="homeTitle">一年英硕</h1>
+      <h1 id="homeTitle">英硕模拟器</h1>
       <p>在伦敦，用 36 周把毕业、生活和这一年的英国情都安排明白。</p>
       <div class="home-progress" id="homeProgress">
         <div><span>最近进度</span><strong id="homeProgressTitle">尚未开始</strong></div>
@@ -95,7 +96,7 @@
   <div class="overlay onboarding" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
     <section class="intro-card">
       <span class="eyebrow">理工科 DEMO · 10月 · LONDON</span>
-      <h1 id="onboardingTitle">欢迎来到你的一年英硕</h1>
+      <h1 id="onboardingTitle">欢迎来到英硕模拟器</h1>
       <p>本次试玩先聚焦理工科英硕。毕业是硬目标；至于这一年会变成什么样，由你每周的三个行动决定。</p>
       <article class="persona-card" id="personaCard">
         <div class="persona-head"><span id="personaMajor">理工类</span><b id="personaTrait">失败重试</b></div>
@@ -176,7 +177,7 @@
 
   <div class="overlay" id="shoppingOverlay">
     <section class="message-card shopping-card" role="dialog" aria-modal="true" aria-labelledby="shoppingTitle">
-      <div class="message-icon">🛍</div><span class="eyebrow">安排购物行动</span><h2 id="shoppingTitle">这周打算花多少钱？</h2><p>现在选好预算，行动槽会直接显示档位。周结算只播放过程和结果，不再打断你做选择。</p>
+      <div class="message-icon">🛍</div><span class="eyebrow">安排购物行动</span><h2 id="shoppingTitle">这周打算花多少钱？</h2><p>现在选好预算，行动槽会直接显示档位。即使余额不足也可以选择，但下周会强制占用一格向家里要钱。</p><div class="spending-preview" id="shoppingBalanceHint">预计结算余额 £600</div>
       <div class="shopping-options" id="shoppingOptions">
         <button data-shop-tier="0" type="button"><b>暂时不买</b><span>£0 · 无变化</span></button>
         <button data-shop-tier="30" type="button"><b>买点小东西</b><span>£30 · 精神 +2 · 社交 +1</span></button>
@@ -189,7 +190,7 @@
 
   <div class="overlay" id="planSettlementOverlay">
     <section class="message-card plan-settlement-card" role="dialog" aria-modal="true" aria-labelledby="planSettlementTitle">
-      <div class="plan-stamp" id="planSettlementStamp">判定</div><span class="eyebrow" id="planSettlementKind">私人计划</span><h2 id="planSettlementTitle">本周计划结算</h2><p id="planSettlementBody"></p>
+      <div class="plan-stamp" id="planSettlementStamp">判定</div><span class="eyebrow" id="planSettlementKind">机会结算 1/1</span><h2 id="planSettlementTitle">本周计划结算</h2><p id="planSettlementBody"></p>
       <div class="delta-pills" id="planSettlementDeltas"></div>
       <div class="plan-actions"><button class="secondary-button" id="planRetryButton" type="button" hidden>使用本月重判 · 1/1</button><button class="primary-button" id="planContinueButton" type="button">继续结算</button></div>
     </section>
@@ -212,7 +213,11 @@
 
   <div class="overlay" id="resultsOverlay">
     <section class="results-card" role="dialog" aria-modal="true" aria-labelledby="resultsTitle">
-      <div class="week-stamp" id="resultsWeekStamp">WEEK 1</div><span class="eyebrow">周日 · 23:40</span><h2 id="resultsTitle">这周过得怎么样？</h2><div class="result-list" id="resultList"></div><div class="reward-box" id="rewardBox"><span>本周记忆</span><strong>第一周就把自己安排满了</strong></div><button class="primary-button" id="finishResults" type="button">收下结果</button>
+      <div class="week-stamp" id="resultsWeekStamp">WEEK 1</div><span class="eyebrow">周日 · 23:40</span><h2 id="resultsTitle">这周过得怎么样？</h2>
+      <section class="summary-section"><h3>总数值变化</h3><div class="total-delta-list" id="totalDeltaList"></div></section>
+      <section class="summary-section"><h3>固定行动</h3><div class="result-list" id="fixedResultList"></div></section>
+      <section class="summary-section"><h3>机会事件</h3><div class="result-list" id="opportunityResultList"></div></section>
+      <div class="reward-box" id="rewardBox"><span>本周一句话</span><strong>第一周就把自己安排满了</strong></div><button class="primary-button" id="finishResults" type="button">收下结果</button>
     </section>
   </div>
 
@@ -222,18 +227,27 @@
 
   <div class="overlay" id="monthRewardOverlay">
     <section class="results-card month-reward-card" role="dialog" aria-modal="true" aria-labelledby="monthRewardTitle">
-      <span class="eyebrow">OCTOBER COMPLETE</span><div class="month-medal">10月</div><h2 id="monthRewardTitle">你在伦敦活过了第一个月</h2><p id="monthRewardCopy">课程、生活和人际关系都开始运转。</p>
+      <div class="demo-complete-line"><span class="eyebrow">4-WEEK DEMO COMPLETE</span><b>4 / 36 周</b></div>
+      <div class="month-medal">10月</div><h2 id="monthRewardTitle">你的十月伦敦画像</h2><p id="monthRewardCopy">四周试玩已经完成，这是你为这一年写下的第一份月度档案。</p>
       <div class="title-stack"><strong id="mainTitle">节奏管理者</strong><div><span id="sideTitleOne">按时上线</span><span id="sideTitleTwo">伦敦初体验</span></div></div>
+      <p class="persona-copy" id="monthPersonaCopy"></p>
       <div class="month-stats" id="monthStats"></div>
-      <button class="primary-button" id="showPreviewButton" type="button">看看接下来会发生什么</button>
+      <section class="month-section"><div class="month-section-heading"><span>关系进度</span><small>满 10 解锁人物贴纸</small></div><div class="month-npcs" id="monthNpcList"></div></section>
+      <section class="month-section memory-section"><div class="month-section-heading"><span>你的十月记忆</span><small>来自本局真实经历</small></div><ol class="month-memories" id="monthMemoryList"></ol></section>
+      <section class="month-section sticker-summary"><div><span>本局贴进手账</span><strong id="monthStickerCount">0 枚贴纸</strong></div><div class="month-sticker-fan" id="monthStickerFan" aria-hidden="true"></div></section>
+      <p class="month-snapshot-note">这不是毕业成绩单，只是 36 周旅程的第一张月度快照。</p>
+      <button class="primary-button" id="showPreviewButton" type="button">看看接下来的 32 周</button>
     </section>
   </div>
 
   <div class="overlay" id="demoPreviewOverlay">
     <section class="results-card preview-card" role="dialog" aria-modal="true" aria-labelledby="demoPreviewTitle">
-      <span class="eyebrow">36-WEEK FREE VERSION</span><h2 id="demoPreviewTitle">十月只是开始</h2><p>第一次学业判定、圣诞假期、旅行、关系事件与最终论文，都会继续改变这一年。</p>
-      <div class="preview-path"><div><b>W7</b><span>第一次学业判定</span></div><div><b>寒假</b><span>留英或回国</span></div><div><b>春季</b><span>旅行与关系事件</span></div><div><b>W36</b><span>毕业或延毕</span></div></div>
-      <button class="primary-button" id="finishDemoButton" type="button">完成十月 Demo</button>
+      <span class="eyebrow">36-WEEK FREE VERSION · IN DEVELOPMENT</span><h2 id="demoPreviewTitle">这只是 36 周的开场</h2>
+      <div class="demo-progress"><div><i></i></div><strong>已体验 4 周</strong><span>还有 32 周故事等待展开</span></div>
+      <p class="preview-lead">十月让你学会安排时间。接下来，课程、金钱、健康和关系会开始争抢同样的三个行动点。</p>
+      <div class="preview-path"><div><b>W7 · 第一次判定</b><span>保住学业进度，还是把时间留给生活？</span></div><div><b>寒假 · 留英或回国</b><span>恢复状态、继续探索，房租和生活费仍会流动。</span></div><div><b>春季 · 关系与伦敦</b><span>新的邀约、旅行和事故，会把你推向不同路线。</span></div><div><b>W29—36 · 论文期</b><span>前 28 周的选择，最后都要带进毕业结局。</span></div></div>
+      <p class="preview-closing">四周 Demo 到这里完成，但你的英硕生活才刚刚开始。</p>
+      <button class="primary-button" id="finishDemoButton" type="button">收好十月档案 · 回到首页</button>
     </section>
   </div>
 

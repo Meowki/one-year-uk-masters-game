@@ -150,7 +150,7 @@
       luck: rand(0, 4),
       familyTier: { ...familyTier },
       trait: '学业手动重判',
-      traitNote: '每四周可手动重判 1 次学业失败'
+      traitNote: '每四周可手动重判 1 次学业机会卡失败'
     };
   }
 
@@ -185,12 +185,13 @@
       debtSafety: false,
       behaviorCounts: { cook: 0, takeaway: 0, rest: 0, gym: 0 },
       actionCounts: { study: 0, social: 0, rest: 0, gym: 0, shop: 0, ask: 0, cook: 0, dine: 0, takeaway: 0, deadline: 0 },
-      metrics: { accepted: 0, completed: 0, noShows: 0, city: 0 },
+      metrics: { accepted: 0, completed: 0, noShows: 0, city: 0, shoppingSpend: 0 },
       completedCards: [],
+      experiencedCards: [],
       weekCards: [],
       weekHistory: [],
       experienceFlags: {},
-      eventFlags: { phoneStolen: false, bankCardNearMiss: false },
+      eventFlags: { phoneStolen: false, freshersFlu: false, bankCardNearMiss: false },
       pendingEventStickers: [],
       introSeenWeeks: [],
       settings: { reduceMotion: false },
@@ -221,7 +222,7 @@
     migrated.persona.luck = clamp(Number(migrated.persona.luck) || 0, 0, 10);
     migrated.persona.familyTier = { ...familyTierFor(migrated.persona.familyTier) };
     migrated.persona.trait = '学业手动重判';
-    migrated.persona.traitNote = '每四周可手动重判 1 次学业失败';
+    migrated.persona.traitNote = '每四周可手动重判 1 次学业机会卡失败';
     migrated.avatarId = defaultAvatarFor(migrated.persona);
     let preferences = {};
     try { preferences = JSON.parse(localStorage.getItem(preferencesStorageKey)) || {}; } catch (_) {}
@@ -232,13 +233,14 @@
     while (migrated.shoppingTiers.length < 3) migrated.shoppingTiers.push(null);
     migrated.behaviorCounts = { cook: 0, takeaway: 0, rest: 0, gym: 0, ...(migrated.behaviorCounts || {}) };
     migrated.actionCounts = { study: 0, social: 0, rest: 0, gym: 0, shop: 0, ask: 0, cook: 0, dine: 0, takeaway: 0, deadline: 0, ...(migrated.actionCounts || {}) };
-    migrated.metrics = { accepted: 0, completed: 0, noShows: 0, city: 0, ...(migrated.metrics || {}) };
+    migrated.metrics = { accepted: 0, completed: 0, noShows: 0, city: 0, shoppingSpend: 0, ...(migrated.metrics || {}) };
     migrated.week = clamp(Number(migrated.week) || 1, 1, 4);
     migrated.completedCards = Array.isArray(migrated.completedCards) ? migrated.completedCards : [];
+    migrated.experiencedCards = Array.isArray(migrated.experiencedCards) ? migrated.experiencedCards : [...migrated.completedCards];
     migrated.weekCards = Array.isArray(migrated.weekCards) ? migrated.weekCards : [];
     migrated.weekHistory = Array.isArray(migrated.weekHistory) ? migrated.weekHistory : [];
     migrated.experienceFlags = migrated.experienceFlags || {};
-    migrated.eventFlags = { phoneStolen: false, bankCardNearMiss: false, ...(migrated.eventFlags || {}) };
+    migrated.eventFlags = { phoneStolen: false, freshersFlu: false, bankCardNearMiss: false, ...(migrated.eventFlags || {}) };
     migrated.pendingEventStickers = Array.isArray(migrated.pendingEventStickers) ? migrated.pendingEventStickers : [];
     migrated.introSeenWeeks = Array.isArray(migrated.introSeenWeeks) ? migrated.introSeenWeeks : [];
     migrated.demoComplete = Boolean(migrated.demoComplete);
@@ -441,9 +443,37 @@
     $('#calendarWeek').textContent = `W${state.week} / 36`;
     $('#calendarDeadline').textContent = state.week === 4 ? 'W7 学业判定 · 目标 18' : '10月无硬性 Deadline';
     $('.week-track i').style.width = `${Math.max(3, state.week / 36 * 100)}%`;
-    $('#calendarNow').innerHTML = `<b>W${state.week}</b><span>${state.week === 1 ? 'Instruction Week 与 Welcome' : state.week === 2 ? '课程正式启动' : state.week === 3 ? '第一次小组作业' : '学院发布第一次学业预告'}</span>`;
+    $('#calendarNow').innerHTML = `<b>W${state.week}</b><span>${state.week === 1 ? 'Induction Week 与 Welcome' : state.week === 2 ? '课程正式启动' : state.week === 3 ? '第一次小组作业' : '学院发布第一次学业预告'}</span>`;
     $('#deadlineActionButton').hidden = state.week !== 4;
     $('#resultsWeekStamp').textContent = `WEEK ${state.week}`;
+  }
+
+  function plannedShoppingCost(excludeSlot = -1) {
+    return state.actionSlots.reduce((total, action, index) => {
+      if (index === excludeSlot || action !== 'shop') return total;
+      return total + (Number(state.shoppingTiers[index]) || 0);
+    }, 0);
+  }
+
+  function projectedBalanceForMeal(cost, excludeSlot = -1) {
+    return state.money - plannedShoppingCost(excludeSlot) - cost;
+  }
+
+  function projectedBalanceForShop(cost) {
+    return state.money - plannedShoppingCost(state.activeSlot) - (Number(state.meal?.cost) || 0) - cost;
+  }
+
+  function confirmSpendingChoice(projected, label, commit) {
+    if (projected >= 0) {
+      commit();
+      return;
+    }
+    message({
+      icon: '£', eyebrow: '余额不足', title: '仍然要这样安排吗？',
+      body: `${label}会让本周预计结算余额变为 −£${Math.abs(projected)}。可以继续，但下一周会强制占用一个行动格向家里要钱。`,
+      deltas: [`预计余额 −£${Math.abs(projected)}`, '下周锁定 1 格', '求助后余额 £100'],
+      button: '仍然选择', cancelLabel: '换一个方案'
+    }, commit);
   }
 
   function renderActions() {
@@ -642,7 +672,7 @@
 
   $$('.action-slot').forEach((button, index) => button.addEventListener('click', () => {
     if (state.debtSafety && state.actionSlots[index] === 'ask' && index === state.actionSlots.indexOf('ask')) {
-      message({ icon: '£', eyebrow: '欠款保底', title: '这一格必须先解决欠款', body: '房租扣款后余额小于 £0，本周会强制占用一格向家里要钱。欠款结清后才会解除。', deltas: ['占用 1 个固定行动'] });
+      message({ icon: '£', eyebrow: '欠款保底', title: '这一格必须先解决欠款', body: '上周主动消费后余额小于 £0，本周会强制占用一格向家里要钱。执行后欠款清零，余额补到 £100。', deltas: ['占用 1 个固定行动', '结算后余额 £100'] });
       return;
     }
     state.activeSlot = index;
@@ -732,19 +762,22 @@
         save();
         return;
       }
-      if (state.meal?.type === 'cook' || state.meal?.type === 'dine') {
-        const mealActionIndex = state.actionSlots.findIndex(value => value === state.meal.type);
-        if (mealActionIndex >= 0) {
-          state.actionSlots[mealActionIndex] = null;
-          state.socialInvites[mealActionIndex] = null;
-          state.shoppingTiers[mealActionIndex] = null;
+      const commitTakeaway = () => {
+        if (state.meal?.type === 'cook' || state.meal?.type === 'dine') {
+          const mealActionIndex = state.actionSlots.findIndex(value => value === state.meal.type);
+          if (mealActionIndex >= 0) {
+            state.actionSlots[mealActionIndex] = null;
+            state.socialInvites[mealActionIndex] = null;
+            state.shoppingTiers[mealActionIndex] = null;
+          }
         }
-      }
-      state.meal = { type: 'takeaway', label: '外卖 £60', cost: 60 };
-      hide('#sheetOverlay');
-      renderActions();
-      banner('外卖已经安排', '不占行动点 · 周结算扣 £60');
-      save();
+        state.meal = { type: 'takeaway', label: '外卖 £60', cost: 60 };
+        hide('#sheetOverlay');
+        renderActions();
+        banner('外卖已经安排', '不占行动点 · 周结算扣 £60');
+        save();
+      };
+      confirmSpendingChoice(projectedBalanceForMeal(60), '选择本周外卖', commitTakeaway);
       return;
     }
     if (action === 'shop' && state.actionSlots.some((value, index) => index !== state.activeSlot && value === 'shop')) {
@@ -766,6 +799,11 @@
     }
     if (action === 'deadline') {
       commitDeadlineAction();
+      return;
+    }
+    if (action === 'cook' || action === 'dine') {
+      const cost = action === 'cook' ? 30 : 120;
+      confirmSpendingChoice(projectedBalanceForMeal(cost, state.activeSlot), action === 'cook' ? '选择自己做饭' : '选择出去吃', () => commitAction(action));
       return;
     }
     commitAction(action);
@@ -840,8 +878,12 @@
     return card.categoryKey === 'academic' && card.check === 'academic';
   }
 
+  function hasStandaloneStory(card) {
+    return Boolean(String(card.resultCopy || '').trim());
+  }
+
   function usesStandaloneSettlement(card) {
-    return ['私人计划', '公开承诺'].includes(card.kind) || matchesTrait(card);
+    return hasStandaloneStory(card) || !requirementMet(card) || matchesTrait(card);
   }
 
   function rollCard(card) {
@@ -875,15 +917,20 @@
     return parts.join(' · ') || '记录了一段经历';
   }
 
-  function addResult(results, label, outcome, failed = false, status = '', badge = '') {
+  function addResult(results, label, outcome, failed = false, status = '', badge = '', subBadge = '', subStatus = '', summary = '') {
     const defaultStatus = failed ? 'failed' : (label.startsWith('行动 ') || label.startsWith('本周饮食')) ? 'done' : 'success';
-    results.push({ label, outcome, failed, status: status || defaultStatus, badge });
+    const group = label.startsWith('行动 ') || label.startsWith('两个行动') || label.startsWith('本周饮食') ? 'fixed' : 'opportunity';
+    results.push({ label, outcome, summary: summary || outcome, failed, status: status || defaultStatus, badge, subBadge, subStatus, group });
   }
   function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 
   function createSettlementRun() {
     const snapshot = JSON.parse(JSON.stringify(state));
-    const before = { money: state.money, health: state.health, mental: state.mental, study: state.study };
+    const before = {
+      money: state.money, health: state.health, mental: state.mental, study: state.study,
+      academic: state.persona.academic, social: state.persona.social, luck: state.persona.luck,
+      professorTrust: state.professorTrust, chinaRelation: state.chinaRelation, intlRelation: state.intlRelation
+    };
     const results = [];
     const newStickers = [];
     const queueSticker = id => { if (!hasSticker(id)) newStickers.push(id); };
@@ -897,7 +944,7 @@
           deadlineHandled = true;
           state.actionCounts.deadline += 1;
           state.study += 6;
-          addResult(results, '两个行动 · 期中必修作业', '按要求完成 · 学业 +6', false, 'success', '必修');
+          addResult(results, '两个行动 · 期中必修作业', '按要求完成 · 学业 +6', false, 'done', '必修');
         }
         return;
       }
@@ -905,7 +952,7 @@
         const roll = rand(1, 100);
         const bonus = roll <= state.persona.academic ? 1 : 0;
         state.study += 2 + bonus;
-        addResult(results, `行动 ${index + 1} · 学习`, `学业 +${2 + bonus} · 加成率 ${state.persona.academic}% · 抽到 ${roll}`, false, bonus ? 'success' : 'done');
+        addResult(results, `行动 ${index + 1} · 学习`, `学业 +${2 + bonus} · 加成率 ${state.persona.academic}% · 抽到 ${roll}`, false, 'done', '执行', bonus ? '额外 +1' : '', bonus ? 'success' : '', `学业 +${2 + bonus}`);
       }
       if (action === 'cook') {
         state.health += 2; state.mental += 2;
@@ -940,7 +987,8 @@
           }
           const who = invite === 'china' ? '中国同学' : '外国同学';
           const extra = success ? '邀请成功 · 社交值 +1 · 亲密度 +1' : '邀请未成功 · 无惩罚';
-          addResult(results, `行动 ${index + 1} · 社交 · ${who}`, `精神 +2 · 社交值 +1 · 成功率 ${chance}% · 抽到 ${roll} · ${extra}`, false, success ? 'success' : 'yellow');
+          const summary = success ? `精神 +2 · 社交值 +2 · ${who}亲密度 +1` : '精神 +2 · 社交值 +1';
+          addResult(results, `行动 ${index + 1} · 社交 · ${who}`, `精神 +2 · 社交值 +1 · 成功率 ${chance}% · 抽到 ${roll} · ${extra}`, false, 'done', '执行', success ? '邀请成功' : '邀请未成功', success ? 'success' : 'yellow', summary);
         }
         if (metForeignClassmate) queueSticker('whatsapp');
       }
@@ -958,6 +1006,7 @@
         const cost = state.shoppingTiers[index] ?? 0;
         const reward = shoppingRewards[cost] || shoppingRewards[0];
         state.money -= cost;
+        state.metrics.shoppingSpend += cost;
         state.mental += reward.mental;
         state.persona.social += reward.social;
         addResult(results, `行动 ${index + 1} · 购物 £${cost}`, reward.label);
@@ -1020,6 +1069,7 @@
 
   function markCardExperienced(card) {
     state.metrics.completed += 1;
+    if (!state.experiencedCards.includes(card.id)) state.experiencedCards.push(card.id);
     if (card.repeatRule === 'once' && !state.completedCards.includes(card.id)) state.completedCards.push(card.id);
     if (['L03', 'L04', 'L05', 'L09', 'L13', 'L14'].includes(card.id)) state.metrics.city += 1;
     const stickerByCard = { L01: 'clubcard', L03: 'british-museum', L05: 'central-line', L06: 'gails' };
@@ -1049,11 +1099,11 @@
       : status === 'success' ? '成功'
         : status === 'yellow' ? '判定失败'
           : status === 'red' ? (card.kind === '公开承诺' ? '爽约' : '未完成') : '未完成';
-    $('#planSettlementKind').textContent = `${card.kind} · ${card.category}`;
+    $('#planSettlementKind').textContent = `机会结算 ${settlementRun.planCursor}/${settlementRun.planQueue.length} · ${card.kind} · ${card.category}`;
     $('#planSettlementTitle').textContent = card.title;
     $('#planSettlementBody').textContent = pendingRetry
-      ? `初次成功率 ${chance}%，抽到 ${roll}，没有通过。你可以手动使用本月唯一一次重判，也可以接受这次失败。`
-      : status === 'success' && card.resultCopy ? card.resultCopy : planDialogue(index, status);
+      ? `初次成功率 ${chance}%，抽到 ${roll}，没有通过。你可以手动使用本月唯一一次机会卡重判，也可以接受这次失败。`
+      : status !== 'red' && card.resultCopy ? card.resultCopy : planDialogue(index, status);
     const deltas = pendingRetry ? [`成功率 ${chance}%`, '重判机会 1/1'] : [prefix || (status === 'success' ? '判定成功' : '判定未通过'), outcome];
     const deltaBox = $('#planSettlementDeltas');
     deltaBox.className = `delta-pills ${visualStatus}`;
@@ -1071,6 +1121,7 @@
     }
     const index = settlementRun.planQueue[settlementRun.planCursor++];
     const card = cards[index];
+    const showStory = hasStandaloneStory(card);
     activePlan = { index, resolved: false };
     if (!requirementMet(card)) {
       const resolved = applyPlanOutcome(index, false, '行动条件未满足', true);
@@ -1081,7 +1132,8 @@
     if (!card.check) {
       const resolved = applyPlanOutcome(index, true, '行动条件已满足');
       activePlan.resolved = true;
-      renderPlanOverlay(index, { status: resolved.status, prefix: '自动成功', outcome: resolved.outcome });
+      if (showStory) renderPlanOverlay(index, { status: resolved.status, prefix: '自动成功', outcome: resolved.outcome });
+      else { activePlan = null; processNextPlan(); }
       return;
     }
     const result = rollCard(card);
@@ -1089,7 +1141,8 @@
     if (result.success) {
       const resolved = applyPlanOutcome(index, true, `成功率 ${result.chance}% · 抽到 ${result.roll}`);
       activePlan.resolved = true;
-      renderPlanOverlay(index, { status: resolved.status, prefix: `成功率 ${result.chance}% · 抽到 ${result.roll}`, outcome: resolved.outcome });
+      if (showStory) renderPlanOverlay(index, { status: resolved.status, prefix: `成功率 ${result.chance}% · 抽到 ${result.roll}`, outcome: resolved.outcome });
+      else { activePlan = null; processNextPlan(); }
       return;
     }
     if (matchesTrait(card) && !state.traitUsed) {
@@ -1098,7 +1151,8 @@
     }
     const resolved = applyPlanOutcome(index, false, `成功率 ${result.chance}% · 抽到 ${result.roll}`);
     activePlan.resolved = true;
-    renderPlanOverlay(index, { status: resolved.status, prefix: `成功率 ${result.chance}% · 抽到 ${result.roll}`, outcome: resolved.outcome });
+    if (showStory) renderPlanOverlay(index, { status: resolved.status, prefix: `成功率 ${result.chance}% · 抽到 ${result.roll}`, outcome: resolved.outcome });
+    else { activePlan = null; processNextPlan(); }
   }
 
   function finalizeOpportunityCards() {
@@ -1144,6 +1198,11 @@
     state.professorTrust = clamp(state.professorTrust, 0, 10);
     state.chinaRelation = clamp(state.chinaRelation, 0, 10);
     state.intlRelation = clamp(state.intlRelation, 0, 10);
+    settlementRun.after = {
+      money: state.money, health: state.health, mental: state.mental, study: state.study,
+      academic: state.persona.academic, social: state.persona.social, luck: state.persona.luck,
+      professorTrust: state.professorTrust, chinaRelation: state.chinaRelation, intlRelation: state.intlRelation
+    };
     state.settled = true;
     state.weekSummary = `伦敦第 ${state.week} 周：完成 ${settlementRun.results.filter(result => ['success', 'done', 'yellow'].includes(result.status)).length} 项经历，学业来到 ${state.study}。`;
     pendingStickerQueue = [...new Set(settlementRun.newStickers)].filter(id => !hasSticker(id));
@@ -1157,17 +1216,66 @@
 
   function displayResults(settlement) {
     $('#resultsWeekStamp').textContent = `WEEK ${state.week}`;
-    const list = $('#resultList');
-    list.innerHTML = '';
-    settlement.results.forEach((result, index) => {
+    const deltaLabels = {
+      money: '资金', health: '生命', mental: '精神', study: '学业', academic: '学术能力', social: '社交值', luck: '幸运',
+      professorTrust: '教授信任', chinaRelation: '中国同学', intlRelation: '外国同学'
+    };
+    const deltaList = $('#totalDeltaList');
+    deltaList.innerHTML = '';
+    Object.keys(deltaLabels).forEach(key => {
+      const delta = (settlement.after?.[key] ?? settlement.before[key]) - settlement.before[key];
+      if (!delta) return;
+      const item = document.createElement('span');
+      item.className = delta > 0 ? 'positive' : 'negative';
+      const amount = `${delta > 0 ? '+' : '−'}${key === 'money' ? '£' : ''}${Math.abs(delta)}`;
+      item.innerHTML = `<b>${deltaLabels[key]}</b><em>${amount}</em>`;
+      deltaList.appendChild(item);
+    });
+    if (!deltaList.children.length) deltaList.innerHTML = '<span class="neutral"><b>本周</b><em>无数值变化</em></span>';
+
+    const compactResultLabel = label => String(label)
+      .replace(/^行动 \d+ · /, '')
+      .replace(/^两个行动 · /, '')
+      .replace(/^本周饮食 · /, '饮食 · ');
+
+    const compactResultOutcome = outcome => String(outcome || '')
+      .split(' · ')
+      .map(part => part.trim())
+      .filter(part => part
+        && !/^成功率 \d+%$/.test(part)
+        && !/^初次成功率 \d+%$/.test(part)
+        && !/^抽到 \d+$/.test(part)
+        && !/^加成率 \d+%$/.test(part)
+        && !['手动重判', '成功', '仍未通过', '接受失败', '行动条件已满足', '行动条件未满足', '邀请成功', '邀请未成功', '无惩罚'].includes(part))
+      .map(part => part
+        .replace(/^额外成果：/, '')
+        .replace('额外判定未成功，基础收益保留', '基础收益保留'))
+      .join(' · ') || '本周已记录';
+
+    const appendRows = (target, results, delayOffset = 0) => {
+      target.innerHTML = '';
+      if (!results.length) {
+        target.innerHTML = '<div class="result-empty">本周没有相关记录</div>';
+        return;
+      }
+      results.forEach((result, index) => {
       const row = document.createElement('div');
       row.className = `result-row ${result.status}`;
-      row.style.animationDelay = `${.28 + index * .08}s`;
+      row.style.animationDelay = `${.28 + (delayOffset + index) * .08}s`;
       const badges = { success: '成功', yellow: '判定失败', condition: '条件未满足', red: '未完成', incomplete: '未完成', failed: '失败', skipped: '未完成', done: '执行' };
       const badge = result.badge || badges[result.status] || '执行';
-      row.innerHTML = `<div class="result-main"><em>${badge}</em><b>${result.label}</b></div><span>${result.outcome}</span>`;
-      list.appendChild(row);
-    });
+      const subBadge = result.subBadge ? `<em class="result-sub-badge ${result.subStatus}">${result.subBadge}</em>` : '';
+      const label = compactResultLabel(result.label);
+      const summary = compactResultOutcome(result.summary || result.outcome);
+      row.innerHTML = `<div class="result-main"><span class="result-badges"><em>${badge}</em>${subBadge}</span><b>${label}</b></div><span class="result-summary">${summary}</span>`;
+      target.appendChild(row);
+      });
+    };
+
+    const fixedResults = settlement.results.filter(result => result.group === 'fixed');
+    const opportunityResults = settlement.results.filter(result => result.group !== 'fixed');
+    appendRows($('#fixedResultList'), fixedResults);
+    appendRows($('#opportunityResultList'), opportunityResults, fixedResults.length);
     const completed = settlement.results.filter(result => ['success', 'done', 'yellow'].includes(result.status)).length;
     $('#rewardBox strong').textContent = completed >= 4 ? `第 ${state.week} 周：日程塞得满满当当` : completed >= 2 ? `第 ${state.week} 周：开始找到自己的伦敦节奏` : '有时候，顺利过完一周就是成就';
     show('#resultsOverlay');
@@ -1208,9 +1316,22 @@
   function renderShoppingOptions() {
     $$('[data-shop-tier]').forEach(button => {
       const cost = Number(button.dataset.shopTier);
-      button.disabled = cost > 0 && cost > state.money;
-      button.title = button.disabled ? `还差 £${cost - state.money}` : '';
+      const projected = projectedBalanceForShop(cost);
+      button.disabled = false;
+      button.classList.toggle('will-overdraw', projected < 0);
+      button.title = projected < 0 ? `预计欠款 £${Math.abs(projected)}` : `预计余额 £${projected}`;
+      let preview = $('.tier-balance', button);
+      if (!preview) {
+        preview = document.createElement('small');
+        preview.className = 'tier-balance';
+        button.appendChild(preview);
+      }
+      preview.textContent = projected < 0 ? `预计 −£${Math.abs(projected)} · 下周强制求助` : `预计余额 £${projected}`;
     });
+    const current = projectedBalanceForShop(Number(state.shoppingTiers[state.activeSlot]) || 0);
+    const hint = $('#shoppingBalanceHint');
+    hint.classList.toggle('warning', current < 0);
+    hint.textContent = current < 0 ? `当前方案预计欠款 £${Math.abs(current)}` : `当前方案预计结算余额 £${current}`;
   }
 
   function cancelSettlement() {
@@ -1226,8 +1347,7 @@
 
   $$('[data-shop-tier]').forEach(button => button.addEventListener('click', () => {
     const cost = Number(button.dataset.shopTier);
-    if (cost > state.money) return;
-    commitAction('shop', null, cost);
+    confirmSpendingChoice(projectedBalanceForShop(cost), `选择 £${cost} 购物档`, () => commitAction('shop', null, cost));
   }));
 
   function cancelShoppingChoice() {
@@ -1288,57 +1408,163 @@
     if (state.debtSafety) state.actionSlots[0] = 'ask';
   }
 
-  function maybeRunRandomEvent() {
+  function maybeRunRandomEvent(next = () => {}) {
     if (!state.eventFlags.phoneStolen && state.persona.luck <= 1 && Math.random() < .05) {
       state.eventFlags.phoneStolen = true;
       state.money -= 80;
       state.pendingEventStickers.push('iphone18');
       renderStats();
-      message({ icon: '📱', eyebrow: '低幸运彩蛋', title: '手机不见了', body: '回过神时口袋已经空了。补办、临时通讯和后续支出先合并记为 £80。', deltas: ['资金 −£80', 'iPhone 18 贴纸待本周结算'], button: '先继续这一周' });
+      message({ icon: '📱', eyebrow: '低幸运彩蛋', title: '手机不见了', body: '回过神时口袋已经空了。补办、临时通讯和后续支出先合并记为 £80。', deltas: ['资金 −£80', 'iPhone 18 贴纸待本周结算'], button: '先继续这一周' }, next);
+      return;
+    }
+    if (!state.eventFlags.freshersFlu && state.persona.luck <= 3 && Math.random() < .08) {
+      state.eventFlags.freshersFlu = true;
+      state.health = clamp(state.health - 10, 0, 100);
+      state.mental = clamp(state.mental - 10, 0, 100);
+      state.pendingEventStickers.push('paracetamol');
+      renderStats();
+      message({
+        icon: '🤧',
+        eyebrow: '低幸运彩蛋',
+        title: '欢迎感染 Freshers’ Flu',
+        body: '开学没几天，宿舍、教室和 Welcome 活动像轮流传递感冒。你去 Boots 买了最熟悉的那盒 Paracetamol，靠热水和早睡继续撑这一周。',
+        deltas: ['生命 −10', '精神 −10', 'Boots Paracetamol 贴纸待本周结算'],
+        button: '先照顾好自己'
+      }, next);
       return;
     }
     if (state.week >= 2 && !state.eventFlags.bankCardNearMiss && state.persona.luck >= 4 && Math.random() < .08) {
       state.eventFlags.bankCardNearMiss = true;
-      message({ icon: '💳', eyebrow: '一场虚惊', title: '差点把银行卡丢了', body: '你翻了两遍包，最后在外套夹层里摸到了它。中等偏上的好运，大概就是先吓你一跳。', deltas: ['无属性变化', '本存档仅触发一次'] });
+      message({ icon: '💳', eyebrow: '一场虚惊', title: '差点把银行卡丢了', body: '你翻了两遍包，最后在外套夹层里摸到了它。中等偏上的好运，大概就是先吓你一跳。', deltas: ['无属性变化', '本存档仅触发一次'] }, next);
+      return;
     }
+    next();
   }
 
-  function maybeRunRelationshipReward() {
+  function maybeRunRelationshipReward(next = () => {}) {
     const candidates = [
       state.chinaRelation >= 9 && !state.experienceFlags.china_relation_reward && { flag: 'china_relation_reward', icon: '🧋', title: '“周末别自己吃了”', body: '中国同学发来了定好时间和地点的消息。你已经不是通讯录里的一个新名字。' },
       state.intlRelation >= 9 && !state.experienceFlags.intl_relation_reward && { flag: 'intl_relation_reward', icon: '📸', title: '你被加进了一个更小的群聊', body: '不是所有 Welcome Week 的关系都会留下，但这一个看起来会。' },
       state.professorTrust >= 9 && !state.experienceFlags.professor_relation_reward && { flag: 'professor_relation_reward', icon: '✉', title: '“有需要的话，可以再来聊”', body: '教授开始记得你在做什么。这不是推荐信，但是一个很好的开始。' }
     ].filter(Boolean);
     const event = candidates[0];
-    if (!event) { maybeRunRandomEvent(); return; }
+    if (!event) { next(); return; }
     state.experienceFlags[event.flag] = true;
-    message({ icon: event.icon, eyebrow: '关系事件 · 9/10', title: event.title, body: event.body, deltas: ['不消耗行动', '关系 10 时解锁人物贴纸'], button: '收下这段记忆' }, maybeRunRandomEvent);
+    message({ icon: event.icon, eyebrow: '关系事件 · 9/10', title: event.title, body: event.body, deltas: ['不消耗行动', '关系 10 时解锁人物贴纸'], button: '收下这段记忆' }, next);
   }
 
-  function runWeekStartStory() {
-    if (state.introSeenWeeks.includes(state.week)) return;
-    state.introSeenWeeks.push(state.week);
+  function runWeekStartStory(next = () => {}) {
     const stories = {
-      1: { eyebrow: 'INSTRUCTION WEEK', title: '七人小组，暂时只记住了几张脸', body: 'Welcome、学生证、超市和一堆群聊同时出现。这一周没有学业硬指标，先学会安排三个行动。' },
-      2: { eyebrow: '课程开始', title: '正式开学之后，七人小组也没有每个人都出现', body: '课程、社团和伦敦生活开始抢同一份时间。你可以接更多承诺，也可以什么都不说死。' },
-      3: { eyebrow: '第一次小组作业', title: 'Office Hour 前，你连自己要问什么都没想好', body: '紧张是真的，好在教授并没有不耐烦。这周的学业机会更多，但生活也不会停下。' },
+      1: { eyebrow: 'INDUCTION WEEK', title: '七人小组，暂时只记住了几张脸', body: 'Welcome、学生证、超市和一堆群聊同时出现。这一周没有学业硬指标，先学会安排三个行动。' },
       4: { eyebrow: '学院通知', title: 'W7 结束时，学业值需要达到 18', body: '期中必修作业已加入固定行动：连占两格，完成后学业 +6。如果你已经领先，也可以不做。' }
     };
     const story = stories[state.week];
-    message({ icon: state.week === 4 ? '!' : '✉', eyebrow: story.eyebrow, title: story.title, body: story.body, deltas: state.week === 4 ? ['W7 目标：学业 18', '必修作业：2 行动→学业 +6'] : [`W${state.week} 新卡池已刷新`], button: '开始安排' }, maybeRunRelationshipReward);
+    if (!story || state.introSeenWeeks.includes(state.week)) { next(); return; }
+    state.introSeenWeeks.push(state.week);
+    message({ icon: state.week === 4 ? '!' : '✉', eyebrow: story.eyebrow, title: story.title, body: story.body, deltas: state.week === 4 ? ['W7 目标：学业 18', '必修作业：2 行动→学业 +6'] : [`W${state.week} 新卡池已刷新`], button: '开始安排' }, next);
+  }
+
+  function runWeekStartSequence() {
+    runWeekStartStory(() => maybeRunRelationshipReward(() => maybeRunRandomEvent()));
+  }
+
+  function buildMonthProfile() {
+    const experienced = new Set([...(state.completedCards || []), ...(state.experiencedCards || [])]);
+    const cardsByCategory = category => cardCatalog.filter(card => experienced.has(card.id) && card.categoryKey === category).length;
+    const scores = {
+      academic: state.actionCounts.study * 2 + state.actionCounts.deadline * 4 + state.study / 3 + cardsByCategory('academic') * 2,
+      social: state.actionCounts.social * 2 + state.actionCounts.dine * 1.5 + Math.max(0, state.chinaRelation - 6) + state.intlRelation + cardsByCategory('social') * 2,
+      london: state.metrics.city * 4 + state.actionCounts.shop * 1.5 + state.actionCounts.dine + state.actionCounts.takeaway + cardsByCategory('life') * 2
+    };
+    const fulfilment = state.metrics.accepted ? state.metrics.completed / state.metrics.accepted : 0;
+    const sortedRoutes = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+    const routeValues = Object.values(scores);
+    const balanced = Math.min(...routeValues) >= 7 && Math.max(...routeValues) / Math.max(1, Math.min(...routeValues)) <= 1.4;
+    let key = sortedRoutes[0][0];
+    let title = { academic: '图书馆常驻候选人', social: '伦敦社交启动器', london: '伦敦生活体验派' }[key];
+
+    if (state.metrics.shoppingSpend >= 240 || state.actionCounts.shop >= 3) { key = 'spending'; title = '及时行乐体验家'; }
+    else if (state.behaviorCounts.cook >= 4 && state.metrics.shoppingSpend <= 30 && state.money >= 0) { key = 'planning'; title = '留子生存规划师'; }
+    else if (state.metrics.accepted >= 8 && state.metrics.noShows === 0 && fulfilment >= .85) { key = 'fulfilment'; title = '说到做到行动派'; }
+    else if (balanced) { key = 'balanced'; title = '十月六边形新生'; }
+    else if (Math.max(...routeValues) < 6) { key = 'starter'; title = '刚刚上手的伦敦新生'; }
+
+    const candidates = [
+      { label: '低幸运幸存者', score: state.eventFlags.phoneStolen || state.eventFlags.freshersFlu ? 30 : state.persona.luck === 0 ? 10 : 0, group: 'luck' },
+      { label: '贴纸猎人', score: state.unlocked.length * 3, group: 'sticker' },
+      { label: '关系推进器', score: Math.max(state.chinaRelation, state.intlRelation, state.professorTrust) >= 9 ? 18 : state.intlRelation + Math.max(0, state.chinaRelation - 6), group: 'relation' },
+      { label: '承诺守信', score: state.metrics.accepted >= 4 && state.metrics.noShows === 0 ? 14 + state.metrics.completed : 0, group: 'fulfilment' },
+      { label: '伦敦暴走', score: state.metrics.city * 5, group: 'london' },
+      { label: '厨房自救中', score: state.behaviorCounts.cook * 3, group: 'planning' },
+      { label: '主动破冰', score: (state.actionCounts.social + state.actionCounts.dine) * 3, group: 'social' },
+      { label: '消费有主见', score: state.metrics.shoppingSpend / 15, group: 'spending' },
+      { label: '钱包守门员', score: state.metrics.shoppingSpend <= 30 && state.money >= 300 ? 9 : 0, group: 'planning' },
+      { label: '学习已打卡', score: state.actionCounts.study * 2 + state.actionCounts.deadline * 4, group: 'academic' }
+    ];
+    const tags = candidates.filter(candidate => candidate.group !== key).sort((a, b) => b.score - a.score).slice(0, 2).map(candidate => candidate.label);
+    while (tags.length < 2) tags.push(tags.length ? '伦敦初体验' : '学习已打卡');
+
+    const intros = {
+      academic: '你用学习和学术机会把十月稳稳托住，也开始让教授记住你的研究方向。',
+      social: '你没有把 Welcome Week 当成一次性活动，而是在陌生城市里主动建立自己的关系网。',
+      london: '你把伦敦当成了生活现场：交通、超市、咖啡馆和城市事件都成了这一月的坐标。',
+      spending: '你愿意为当下的精神状态和伦敦体验花钱，钱包和快乐都留下了清楚的记录。',
+      planning: '你靠做饭、节制和行动安排把日子过得很具体，是典型的留子生存路线。',
+      fulfilment: '你接下了承诺，也尽量把它们兑现；十月的节奏是被你一件件做出来的。',
+      balanced: '学业、社交和伦敦生活都没有被你落下，你的第一个月意外地全面。',
+      starter: '你还在试探这套生活的规则，但已经留下了属于自己的第一批伦敦记忆。'
+    };
+    let tension = '你没有把所有事情都做满，但已经开始知道三个行动点真正值多少钱。';
+    if (state.eventFlags.phoneStolen) tension = '手机失窃提醒你：有些伦敦经历，不是安排好就能避开。';
+    else if (state.eventFlags.freshersFlu) tension = '新生流感让计划突然慢下来，健康也会参与这一年的资源分配。';
+    else if (state.metrics.noShows > 0) tension = `你留下了 ${state.metrics.noShows} 次爽约记录；承诺在后面的关系里会继续产生回声。`;
+    else if (state.money < 100) tension = '你带着几乎见底的钱包走出十月，下一次选择会更难只看心情。';
+    else if (state.mental < 50) tension = '日程在向前走，精神状态却已经提醒你不能只顾完成任务。';
+    else if (Math.max(state.chinaRelation, state.intlRelation, state.professorTrust) >= 9) tension = '至少有一段关系已经接近新的阶段，十一月不会只是重复认识新人。';
+    return { key, title, tags, copy: `${intros[key]} ${tension}` };
+  }
+
+  function buildMonthMemories() {
+    const experienced = new Set([...(state.completedCards || []), ...(state.experiencedCards || [])]);
+    const memories = [];
+    const add = (condition, copy) => { if (condition && memories.length < 3) memories.push(copy); };
+    add(state.eventFlags.phoneStolen, '低幸运彩蛋成真：手机不见了，£80 和一枚 iPhone 贴纸留在了十月。');
+    add(state.eventFlags.freshersFlu, '新生流感突然袭来，你第一次意识到健康也会打乱留学计划。');
+    add(experienced.has('S12'), '晚上十点想找人说话时，国内已经太晚，伦敦的关系又还不够深。');
+    add(experienced.has('A05'), '第一次小组 Presentation 排练，紧张和配合同时发生。');
+    add(experienced.has('A07'), '你走进了 Office Hour；就算一开始不知道说什么，教授仍认真听完了。');
+    add(experienced.has('L01'), '一听常见 £1.5—£2 的可乐，让“伦敦真的很贵”第一次变得具体。');
+    add(experienced.has('L03'), '你把大英博物馆放进了课表之外，伦敦不只有 deadline。');
+    add(experienced.has('L05'), 'Central Line 成了你的城市坐标，也可能成为迟到的理由。');
+    add(state.eventFlags.bankCardNearMiss, '银行卡差点消失，最后在外套夹层里找回——有惊无险也算伦敦记忆。');
+    add(state.behaviorCounts.cook > 0, `你在四周里开火 ${state.behaviorCounts.cook} 次，开始拥有自己的留子厨房。`);
+    add(state.actionCounts.takeaway > 0, `你用 £60 周预算点过外卖，方便和心疼同时到账。`);
+    add(state.metrics.noShows > 0, `你有 ${state.metrics.noShows} 次承诺没有做到，关系和信任会记住这件事。`);
+    add(true, `你完成了四周 Demo，学业来到 ${state.study}，手里还剩 ${state.money < 0 ? `−£${Math.abs(state.money)}` : `£${state.money}`}。`);
+    return memories;
   }
 
   function renderMonthReward() {
-    const academicLean = state.actionCounts.study + state.actionCounts.deadline * 2;
-    const socialLean = state.actionCounts.social + state.actionCounts.dine;
-    const main = academicLean >= socialLean ? '节奏管理者' : '伦敦联络人';
-    const sideOne = state.metrics.noShows ? '承诺的代价' : '说到做到';
-    const sideTwo = state.metrics.city >= 2 ? '伦敦地图点亮中' : state.behaviorCounts.cook >= 2 ? '开火留学生' : '十月新生';
-    $('#mainTitle').textContent = main;
-    $('#sideTitleOne').textContent = sideOne;
-    $('#sideTitleTwo').textContent = sideTwo;
-    $('#monthRewardCopy').textContent = `4 周结束：学业 ${state.study}，接下 ${state.metrics.accepted} 张机会，完成 ${state.metrics.completed} 段经历。`;
-    $('#monthStats').innerHTML = `<div><span>学业</span><b>${state.study}</b></div><div><span>贴纸</span><b>${globalStickerIds().length}</b></div><div><span>人际</span><b>${state.chinaRelation + state.intlRelation}</b></div>`;
+    const profile = buildMonthProfile();
+    $('#mainTitle').textContent = profile.title;
+    $('#sideTitleOne').textContent = profile.tags[0];
+    $('#sideTitleTwo').textContent = profile.tags[1];
+    $('#monthRewardCopy').textContent = `四周试玩已经完成：你接下 ${state.metrics.accepted} 张机会，走过 ${state.metrics.completed} 段事件。`;
+    $('#monthPersonaCopy').textContent = profile.copy;
+    const money = state.money < 0 ? `−£${Math.abs(state.money)}` : `£${state.money}`;
+    $('#monthStats').innerHTML = `<div><span>学业进度</span><b>${state.study}</b></div><div><span>十月余额</span><b>${money}</b></div><div><span>完成经历</span><b>${state.metrics.completed}</b></div>`;
+
+    const npcs = [
+      { name: '中国同学', value: state.chinaRelation },
+      { name: '外国同学', value: state.intlRelation, locked: state.intlRelation <= 0 },
+      { name: '教授信任', value: state.professorTrust }
+    ];
+    $('#monthNpcList').innerHTML = npcs.map(npc => `<div class="month-npc${npc.locked ? ' locked' : ''}"><span><b>${npc.name}</b><em>${npc.locked ? '未解锁' : `${npc.value}/10`}</em></span><i style="--npc-progress:${npc.locked ? 0 : npc.value * 10}%"></i></div>`).join('');
+    $('#monthMemoryList').innerHTML = buildMonthMemories().map(memory => `<li>${memory}</li>`).join('');
+
+    const runStickers = [...new Set(state.unlocked)].map(id => stickers.find(sticker => sticker.id === id)).filter(Boolean);
+    $('#monthStickerCount').textContent = `${runStickers.length} 枚本局新收藏 · 总册 ${globalStickerIds().length}/${stickers.length}`;
+    $('#monthStickerFan').innerHTML = runStickers.slice(-3).reverse().map((sticker, index) => `<img src="${sticker.src}" alt="" style="--sticker-index:${index};--sticker-rotate:${(index - 1) * 8}deg">`).join('');
   }
 
   function completeWeekTransition() {
@@ -1349,7 +1575,7 @@
       writeCompletedCheckpoint();
       renderMonthReward();
       confetti();
-      show('#monthRewardOverlay');
+      maybeRunRelationshipReward(() => show('#monthRewardOverlay'));
       return;
     }
     state.week += 1;
@@ -1358,7 +1584,7 @@
     ensureWeekCards();
     renderAll();
     confetti();
-    runWeekStartStory();
+    runWeekStartSequence();
   }
 
   function finishResultsFlow() {
@@ -1451,7 +1677,7 @@
     hide('#homeOverlay');
     renderAll();
     banner('第一周开始', '先看看四张机会，再安排三个行动');
-    runWeekStartStory();
+    runWeekStartSequence();
   });
 
   function startNewGame() {
@@ -1486,7 +1712,7 @@
       renderAll();
       banner('存档读取成功', raw === manual ? '已读取手动存档槽 1' : '已读取最近完成周存档');
       if (state.demoComplete) { renderMonthReward(); show('#monthRewardOverlay'); }
-      else runWeekStartStory();
+      else runWeekStartSequence();
     } catch (_) {
       banner('读取失败', '这个存档无法识别，请重新保存');
     }
@@ -1548,7 +1774,7 @@
         hide('#homeOverlay');
         banner('存档读取成功', '已经回到手动存档槽 1');
         if (state.demoComplete) { renderMonthReward(); show('#monthRewardOverlay'); }
-        else runWeekStartStory();
+        else runWeekStartSequence();
       } catch (_) {
         banner('读取失败', '这个存档无法识别，请重新保存');
       }

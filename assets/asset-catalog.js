@@ -17,6 +17,7 @@ window.LONDON_GAME_ASSETS = Object.freeze({
     { id: 'london-photo-strip', name: '伦敦拍贴合照', src: 'assets/stickers/london-photo-strip.png', reason: '外国同学亲密度达到 10。' },
     { id: 'professor-reference', name: '教授推荐信', src: 'assets/stickers/professor-reference.png', reason: '教授信任达到 10。' },
     { id: 'iphone18', name: 'iPhone 18', src: 'assets/stickers/iphone18.png', reason: '低幸运时触发手机失窃事件。' },
+    { id: 'paracetamol', name: 'Boots Paracetamol', src: 'assets/stickers/boots-paracetamol.png', reason: '幸运 0—3 时感染 Freshers’ Flu。' },
     { id: 'penhaligons-bottle', name: '潘海利根香水瓶', src: 'assets/stickers/penhaligons-bottle.png', reason: '第一次完成 £80 购物。' },
     { id: 'selfridges-bag', name: 'Selfridges 购物袋', src: 'assets/stickers/selfridges-shopping-bag.png', reason: '第一次完成 £200 购物。' },
     { id: 'central-line', name: 'Central Line', src: 'assets/stickers/central-line.png', reason: '完成指定伦敦地铁事件。' },

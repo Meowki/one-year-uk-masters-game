@@ -1,6 +1,6 @@
 {
-  "name": "一年英硕 · 伦敦十月 Demo",
-  "short_name": "一年英硕",
+  "name": "英硕模拟器 · 伦敦十月 Demo",
+  "short_name": "英硕模拟器",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f1ecdf",
